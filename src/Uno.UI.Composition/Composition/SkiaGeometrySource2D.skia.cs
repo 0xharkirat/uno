@@ -36,15 +36,15 @@ namespace Microsoft.UI.Composition
 		public bool Contains(float x, float y) => _geometry.Contains(x, y);
 
 		public SkiaGeometrySource2D Op(SkiaGeometrySource2D other, SKPathOp op) => new(_geometry.Op(other._geometry, op));
-    
-    /// <remarks>
+
+		/// <remarks>
 		/// DO NOT MODIFY THIS SKPath. CREATE A NEW SkiaGeometrySource2D INSTEAD.
 		/// This can lead to nasty invalidation bugs where the SKPath changes without notifying anyone.
 		/// </remarks>
 		public SKPath Geometry => _geometry;
 
-		public void Dispose() => Geometry.Dispose();
-
 		#endregion
+
+		public void Dispose() => Geometry.Dispose();
 	}
 }
