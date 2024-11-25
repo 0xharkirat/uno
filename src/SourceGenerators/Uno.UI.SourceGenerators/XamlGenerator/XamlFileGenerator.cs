@@ -930,6 +930,8 @@ namespace Uno.UI.SourceGenerators.XamlGenerator
 
 							WriteMetadataNewTypeAttribute(writer);
 							writer.AppendLineIndented("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
+							writer.AppendLineIndented("[global::System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage(\"Trimming\", \"IL2026\")]");
+							writer.AppendLineIndented("[global::System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage(\"Trimming\", \"IL2111\")]");
 							using (writer.BlockInvariant($"{classAccessibility} class {className} {hrInterfaceImpl}"))
 							{
 								BuildBaseUri(writer);
@@ -1084,6 +1086,7 @@ namespace Uno.UI.SourceGenerators.XamlGenerator
 					using (writer.BlockInvariant($"__fe.Loading += delegate"))
 					{
 						BuildComponentResouceBindingUpdates(writer);
+						BuildXBindApply(writer);
 						BuildxBindEventHandlerInitializers(writer, CurrentScope.xBindEventsHandlers);
 					}
 					writer.AppendLineIndented(";");
@@ -1113,6 +1116,19 @@ namespace Uno.UI.SourceGenerators.XamlGenerator
 				if (HasMarkupExtensionNeedingComponent(component.XamlObject) && IsDependencyObject(component.XamlObject))
 				{
 					writer.AppendLineIndented($"{component.MemberName}.UpdateResourceBindings();");
+				}
+			}
+		}
+
+		private void BuildXBindApply(IIndentedStringBuilder writer)
+		{
+			for (var i = 0; i < CurrentScope.Components.Count; i++)
+			{
+				var component = CurrentScope.Components[i];
+
+				if (HasXBindMarkupExtension(component.XamlObject) && IsDependencyObject(component.XamlObject))
+				{
+					writer.AppendLineIndented($"{component.MemberName}.ApplyXBind();");
 				}
 			}
 		}
@@ -1303,6 +1319,10 @@ namespace Uno.UI.SourceGenerators.XamlGenerator
 			{
 				using (writer.BlockInvariant("namespace {0}", _defaultNamespace))
 				{
+
+					writer.AppendLineIndented("[global::System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage(\"Trimming\", \"IL2026\")]");
+					writer.AppendLineIndented("[global::System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage(\"Trimming\", \"IL2111\")]");
+
 					using (writer.BlockInvariant("public sealed partial class GlobalStaticResources"))
 					{
 						BuildBaseUri(writer);
@@ -1581,6 +1601,7 @@ namespace Uno.UI.SourceGenerators.XamlGenerator
 
 			writer.AppendLine();
 
+			writer.AppendLineIndented("[global::System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage(\"Trimming\", \"IL2075\")]");
 			using (writer.BlockInvariant("public static void RegisterDefaultStyles_{0}()", _fileUniqueId))
 			{
 				if (_isHotReloadEnabled)
@@ -1768,6 +1789,8 @@ namespace Uno.UI.SourceGenerators.XamlGenerator
 			TryAnnotateWithGeneratorSource(writer);
 			using (ResourceOwnerScope())
 			{
+				writer.AppendLineIndented("[global::System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage(\"Trimming\", \"IL2026\")]");
+				writer.AppendLineIndented("[global::System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage(\"Trimming\", \"IL2111\")]");
 				writer.AppendLineIndented($"private object {initializerName}(object {CurrentResourceOwner}) =>");
 				using (writer.Indent())
 				{
@@ -4230,8 +4253,10 @@ namespace Uno.UI.SourceGenerators.XamlGenerator
 			var modeMember = bindNode.Members.FirstOrDefault(m => m.Member.Name == "Mode")?.Value?.ToString() ?? GetDefaultBindMode();
 			var rawBindBack = bindNode.Members.FirstOrDefault(m => m.Member.Name == "BindBack")?.Value?.ToString();
 
+			var sourceInstance = CurrentResourceOwner is not null ? CurrentResourceOwnerName : "__that";
+
 			var applyBindingParameters = _isHotReloadEnabled
-				? "__that, (___b, __that)"
+				? $"{sourceInstance}, (___b, {sourceInstance})"
 				: "___b";
 
 			if (isInsideDataTemplate)
@@ -4396,7 +4421,7 @@ namespace Uno.UI.SourceGenerators.XamlGenerator
 					? ", new [] {" + string.Join(", ", formattedPaths) + "}"
 					: "";
 
-				return $".BindingApply({applyBindingParameters} =>  /*defaultBindMode{GetDefaultBindMode()} {rawFunction}*/ global::Uno.UI.Xaml.BindingHelper.SetBindingXBindProvider(___b, __that, ___ctx => {bindFunction}, {buildBindBack()} {pathsArray}))";
+				return $".BindingApply({applyBindingParameters} =>  /*defaultBindMode{GetDefaultBindMode()} {rawFunction}*/ global::Uno.UI.Xaml.BindingHelper.SetBindingXBindProvider(___b, {sourceInstance}, ___ctx => {bindFunction}, {buildBindBack()} {pathsArray}))";
 			}
 		}
 

@@ -6,6 +6,7 @@
 		"Uno.WinUI",
 		"Uno.UI.Adapter.Microsoft.Extensions.Logging",
 		"Uno.WinUI.Maps",
+		"Uno.WinUI.GooglePlay",
 		"Uno.WinUI.Foldable",
 		"Uno.WinUI.MSAL",
 		"Uno.WinUI.Svg",
@@ -66,14 +67,35 @@
 	},
 	{
 	  "group": "Resizetizer",
-	  "version": "1.6.0-dev.31",
+	  "version": "1.7.0-dev.2",
 	  "packages": [
 		"Uno.Resizetizer"
 	  ]
 	},
 	{
+	  "group": "sdkextras",
+	  "version": "5.5-dev.26",
+	  "packages": [
+			"Uno.Sdk.Extras"
+	  ]
+	},
+	{
+		"group": "settings",
+		"version": "1.1.22",
+		"packages": [
+			"Uno.Settings.DevServer"
+		]
+	},
+	{
+		"group": "hotdesign",
+		"version": "1.0.160",
+		"packages": [
+			"Uno.UI.HotDesign"
+		]
+	},
+	{
 	  "group": "SkiaSharp",
-	  "version": "2.88.8",
+	  "version": "2.88.9-preview.2.2",
 	  "packages": [
 		"SkiaSharp.Skottie",
 		"SkiaSharp.Views.Uno.WinUI",
@@ -99,7 +121,7 @@
 	},
 	{
 	  "group": "WinAppSdkBuildTools",
-	  "version": "10.0.26100.1742",
+	  "version": "10.0.22621.3233",
 	  "packages": [
 		"Microsoft.Windows.SDK.BuildTools"
 	  ]
@@ -111,7 +133,7 @@
 		"Microsoft.Extensions.Logging.Console"
 	  ],
 	  "versionOverride": {
-		"net9.0": "9.0.0-rc.2.24473.5"
+		"net9.0": "9.0.0"
 	  }
 	},
 	{
@@ -121,7 +143,7 @@
 		"Microsoft.Windows.Compatibility"
 	  ],
 	  "versionOverride": {
-		"net9.0": "9.0.0-rc.2.24474.4"
+		"net9.0": "9.0.0"
 	  }
 	},
 	{
@@ -233,7 +255,7 @@
 		"Microsoft.Maui.Graphics"
 	  ],
 	  "versionOverride": {
-		"net9.0": "9.0.0-rc.2.24503.2"
+		"net9.0": "9.0.0"
 	  }
 	},
 	{
@@ -246,7 +268,7 @@
 	},
 	{
 	  "group": "Extensions",
-	  "version": "5.1.0-dev.67",
+	  "version": "5.2.0-dev.20",
 	  "packages": [
 		"Uno.Extensions.Authentication.WinUI",
 		"Uno.Extensions.Authentication.MSAL.WinUI",

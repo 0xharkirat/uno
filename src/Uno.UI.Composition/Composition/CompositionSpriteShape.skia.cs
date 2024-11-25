@@ -3,23 +3,41 @@
 using Windows.Foundation;
 using SkiaSharp;
 using Uno;
+using Uno.Disposables;
 using Uno.Extensions;
 
 namespace Microsoft.UI.Composition
 {
 	public partial class CompositionSpriteShape : CompositionShape
 	{
-		private SKPaint? _strokePaint;
-		private SKPaint? _fillPaint;
-		private SKPath? _geometryWithTransformations;
+		private CompositionGeometry? _fillGeometry;
+
+		private SkiaGeometrySource2D? _geometryWithTransformations;
+		private SkiaGeometrySource2D? _fillGeometryWithTransformations;
+
+		/// <summary>
+		/// This is largely a hack that's needed for MUX.Shapes.Path with Data set to a PathGeometry that has some
+		/// figures with IsFilled = False. CompositionSpriteShapes don't have the concept of a "selectively filled
+		/// geometry". The entire Geometry is either filled (FillBrush is not null) or not. To work around this,
+		/// we add this "fill geometry" which is only the subgeomtry to be filled.
+		/// cf. https://github.com/unoplatform/uno/issues/18694
+		/// Remove this if we port Shapes from WinUI, which don't use CompositionSpriteShapes to begin with, but
+		/// a CompositionMaskBrush that (presumably) masks out certain areas. We compensate for this by using this
+		/// geometry as the mask.
+		/// </summary>
+		internal CompositionGeometry? FillGeometry
+		{
+			private get => _fillGeometry;
+			set => SetProperty(ref _fillGeometry, value);
+		}
 
 		internal override void Paint(in Visual.PaintingSession session)
 		{
 			if (_geometryWithTransformations is { } geometryWithTransformations)
 			{
-				if (FillBrush is { } fill)
+				if (FillBrush is { } fill && _fillGeometryWithTransformations is { } finalFillGeometryWithTransformations)
 				{
-					var fillPaint = TryCreateAndClearFillPaint(session.Filters.OpacityColorFilter);
+					using var fillPaintDisposable = GetTempFillPaint(session.Filters.OpacityColorFilter, out var fillPaint);
 
 					if (Compositor.TryGetEffectiveBackgroundColor(this, out var colorFromTransition))
 					{
@@ -27,7 +45,7 @@ namespace Microsoft.UI.Composition
 					}
 					else
 					{
-						fill.UpdatePaint(fillPaint, geometryWithTransformations.Bounds);
+						fill.UpdatePaint(fillPaint, finalFillGeometryWithTransformations.Bounds);
 					}
 
 					if (fill is CompositionBrushWrapper wrapper)
@@ -51,14 +69,14 @@ namespace Microsoft.UI.Composition
 					}
 					else
 					{
-						session.Canvas.DrawPath(geometryWithTransformations, fillPaint);
+						finalFillGeometryWithTransformations.CanvasDrawPath(session.Canvas, fillPaint);
 					}
 				}
 
 				if (StrokeBrush is { } stroke && StrokeThickness > 0)
 				{
-					var fillPaint = TryCreateAndClearFillPaint(session.Filters.OpacityColorFilter);
-					var strokePaint = TryCreateAndClearStrokePaint(session.Filters.OpacityColorFilter);
+					using var fillPaintDisposable = GetTempFillPaint(session.Filters.OpacityColorFilter, out var fillPaint);
+					using var strokePaintDisposable = GetTempStrokePaint(session.Filters.OpacityColorFilter, out var strokePaint);
 
 					// Set stroke thickness
 					strokePaint.StrokeWidth = StrokeThickness;
@@ -94,59 +112,45 @@ namespace Microsoft.UI.Composition
 					// On Windows, the stroke is simply 1px, it doesn't scale with the height.
 					// So, to get a correct stroke geometry, we must apply the transformations first.
 
-					// Get the stroke geometry, after scaling has been applied.
-					var strokeGeometry = strokePaint.GetFillPath(geometryWithTransformations);
+					using (SkiaHelper.GetTempSKPath(out var strokeFillPath))
+					{
+						// Get the stroke geometry, after scaling has been applied.
+						geometryWithTransformations.GetFillPath(strokePaint, strokeFillPath);
 
-					stroke.UpdatePaint(fillPaint, strokeGeometry.Bounds);
+						stroke.UpdatePaint(fillPaint, strokeFillPath.Bounds);
 
-					session.Canvas.DrawPath(strokeGeometry, fillPaint);
+						session.Canvas.DrawPath(strokeFillPath, fillPaint);
+					}
 				}
 			}
 		}
 
-		private SKPaint TryCreateAndClearStrokePaint(SKColorFilter? colorFilter)
-			=> TryCreateAndClearPaint(ref _strokePaint, true, colorFilter, CompositionConfiguration.UseBrushAntialiasing);
+		private DisposableStruct<SKPaint> GetTempStrokePaint(SKColorFilter? colorFilter, out SKPaint paint)
+			=> GetTempPaint(out paint, true, colorFilter, CompositionConfiguration.UseBrushAntialiasing);
 
-		private SKPaint TryCreateAndClearFillPaint(SKColorFilter? colorFilter)
-			=> TryCreateAndClearPaint(ref _fillPaint, false, colorFilter, CompositionConfiguration.UseBrushAntialiasing);
+		private DisposableStruct<SKPaint> GetTempFillPaint(SKColorFilter? colorFilter, out SKPaint paint)
+			=> GetTempPaint(out paint, false, colorFilter, CompositionConfiguration.UseBrushAntialiasing);
 
-		private static SKPaint TryCreateAndClearPaint(ref SKPaint? paint, bool isStroke, SKColorFilter? colorFilter, bool isHighQuality = false)
+		private static DisposableStruct<SKPaint> GetTempPaint(out SKPaint paint, bool isStroke, SKColorFilter? colorFilter, bool isHighQuality = false)
 		{
-			if (paint == null)
-			{
-				// Initialization
-				paint = new SKPaint();
-				paint.IsStroke = isStroke;
-				paint.IsAntialias = true;
-				paint.IsAutohinted = true;
-
-				if (isHighQuality)
-				{
-					paint.FilterQuality = SKFilterQuality.High;
-				}
-			}
-			else
-			{
-				// Cleanup
-				// - Brushes can change, we cant leave color and shader garbage
-				//	 from last rendering around for the next pass.
-				paint.Color = SKColors.White;   // Transparent color wouldn't draw anything
-				if (paint.Shader is { } shader)
-				{
-					shader.Dispose();
-					paint.Shader = null;
-				}
-
-				if (paint.PathEffect is { } pathEffect)
-				{
-					pathEffect.Dispose();
-					paint.PathEffect = null;
-				}
-			}
-
+			var disposable = SkiaHelper.GetTempSKPaint(out paint);
+			paint.IsAntialias = true;
 			paint.ColorFilter = colorFilter;
 
-			return paint;
+			paint.IsStroke = isStroke;
+
+			// uno-specific defaults
+			paint.Color = SKColors.White;   // Transparent color wouldn't draw anything
+			paint.IsAutohinted = true;
+			// paint.IsAntialias = true; // IMPORTANT: don't set this to true by default. It breaks canvas clipping on Linux for some reason.
+
+			paint.ColorFilter = colorFilter;
+			if (isHighQuality)
+			{
+				paint.FilterQuality = SKFilterQuality.High;
+			}
+
+			return disposable;
 		}
 
 		private protected override void OnPropertyChangedCore(string? propertyName, bool isSubPropertyChange)
@@ -155,26 +159,28 @@ namespace Microsoft.UI.Composition
 
 			switch (propertyName)
 			{
-				case nameof(Geometry) or nameof(CombinedTransformMatrix):
-					if (Geometry?.BuildGeometry() is SkiaGeometrySource2D { Geometry: { } geometry })
+				case nameof(Geometry) or nameof(CombinedTransformMatrix) or nameof(FillGeometry):
+					if (Geometry?.BuildGeometry() is SkiaGeometrySource2D geometry)
 					{
 						var transform = CombinedTransformMatrix;
-						SKPath geometryWithTransformations;
-						if (transform.IsIdentity)
+						_geometryWithTransformations = transform.IsIdentity
+							? geometry
+							: geometry.Transform(transform.ToSKMatrix());
+						if (FillGeometry?.BuildGeometry() is SkiaGeometrySource2D fillGeometry)
 						{
-							geometryWithTransformations = geometry;
+							_fillGeometryWithTransformations = transform.IsIdentity
+								? fillGeometry
+								: fillGeometry.Transform(transform.ToSKMatrix());
 						}
 						else
 						{
-							geometryWithTransformations = new SKPath();
-							geometry.Transform(transform.ToSKMatrix(), geometryWithTransformations);
+							_fillGeometryWithTransformations = _geometryWithTransformations;
 						}
-
-						_geometryWithTransformations = geometryWithTransformations;
 					}
 					else
 					{
 						_geometryWithTransformations = null;
+						_fillGeometryWithTransformations = null;
 					}
 					break;
 			}
@@ -191,14 +197,20 @@ namespace Microsoft.UI.Composition
 					return true;
 				}
 
-				if (StrokeBrush is { } stroke && StrokeThickness > 0)
+				if (StrokeBrush is { } && StrokeThickness > 0)
 				{
-					var strokePaint = TryCreateAndClearStrokePaint(null);
-					strokePaint.StrokeWidth = StrokeThickness;
-					var strokeGeometry = strokePaint.GetFillPath(geometryWithTransformations);
-					if (strokeGeometry.Contains((float)point.X, (float)point.Y))
+					using (GetTempStrokePaint(null, out var strokePaint))
 					{
-						return true;
+						strokePaint.StrokeWidth = StrokeThickness;
+
+						using (SkiaHelper.GetTempSKPath(out var hitTestStrokeFillPath))
+						{
+							geometryWithTransformations.GetFillPath(strokePaint, hitTestStrokeFillPath);
+							if (hitTestStrokeFillPath.Contains((float)point.X, (float)point.Y))
+							{
+								return true;
+							}
+						}
 					}
 				}
 			}

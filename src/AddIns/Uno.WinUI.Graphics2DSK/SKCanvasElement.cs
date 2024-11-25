@@ -12,7 +12,7 @@ namespace Uno.WinUI.Graphics2DSK;
 /// <remarks>This is only available on skia-based targets.</remarks>
 public abstract class SKCanvasElement : FrameworkElement
 {
-	private protected override ShapeVisual CreateElementVisual() => new SKCanvasVisual(this, Compositor.GetSharedCompositor());
+	private protected override ContainerVisual CreateElementVisual() => new SKCanvasVisual(this, Compositor.GetSharedCompositor());
 
 	/// <summary>
 	/// Queue a rendering cycle that will call <see cref="RenderOverride"/>.
@@ -26,11 +26,11 @@ public abstract class SKCanvasElement : FrameworkElement
 	/// <param name="area">The dimensions of the clipping area.</param>
 	/// <remarks>
 	/// When called, the <paramref name="canvas"/> is already set up such that the origin (0,0) is at the top-left of the clipping area.
-	/// Drawing outside this area (i.e. outside the (0, 0, area.Width, area.Height) rectangle will be clipped out.
+	/// Drawing outside this area (i.e. outside the (0, 0, area.Width, area.Height) rectangle) will be clipped out.
 	/// </remarks>
 	protected abstract void RenderOverride(SKCanvas canvas, Size area);
 
-	private class SKCanvasVisual(SKCanvasElement owner, Compositor compositor) : ShapeVisual(compositor)
+	private class SKCanvasVisual(SKCanvasElement owner, Compositor compositor) : ContainerVisual(compositor)
 	{
 		internal override void Paint(in PaintingSession session)
 		{

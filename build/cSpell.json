@@ -87,6 +87,7 @@
 	"signalr",
 	"Skia",
 	"skiasharp",
+	"Snapcraft",
 	"Storyboarded",
 	"struct",
 	"Syncfusion",
@@ -201,7 +202,8 @@
 	"jlaban",
 	"sasakrsmanovic",
 	"maccatalyst",
-	"settingscard"
+	"settingscard",
+	"storecontext"
   ],
   "patterns": [
 	{
