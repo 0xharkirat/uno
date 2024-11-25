@@ -77,9 +77,9 @@
 		<PackageReference Update="Uno.Diagnostics.Eventing" Version="2.0.1" />
 		<PackageReference Update="Uno.Wasm.Bootstrap" Version="9.0.0-dev.301" />
 		<PackageReference Update="Uno.Wasm.Bootstrap.DevServer" Version="9.0.0-dev.301" />
-		<PackageReference Update="MSTest" Version="3.3.1" />
-		<PackageReference Update="MSTest.TestFramework" Version="3.3.1" />
-		<PackageReference Update="MSTest.TestAdapter" Version="3.3.1" />
+		<PackageReference Update="MSTest" Version="3.6.3" />
+		<PackageReference Update="MSTest.TestFramework" Version="3.6.3" />
+		<PackageReference Update="MSTest.TestAdapter" Version="3.6.3" />
 		<PackageReference Update="MSTest.Analyzers" Version="3.3.1" />
 		<PackageReference Update="Uno.MonoAnalyzers" Version="1.0.0" PrivateAssets="all" />
 		<PackageReference Update="Uno.Wasm.WebSockets" Version="1.1.0" />
@@ -96,6 +96,12 @@
 		<PackageReference Update="Xamarin.UITest" Version="4.3.5" />
 		<PackageReference Update="Xamarin.TestCloud.Agent" Version="0.23.2" />
 		<PackageReference Update="System.Numerics.Vectors" Version="4.5.0" />
+		<PackageReference Update="System.Private.Uri" Version="4.3.2" />
+		<PackageReference Update="System.Net.Http" Version="4.3.4" />
+		<PackageReference Update="System.Text.RegularExpressions" Version="4.3.1" />
+		<PackageReference Update="NuGet.Packaging" Version="6.3.4" />
+		<PackageReference Update="System.Formats.Asn1" Version="8.0.1" />
+		<PackageReference Update="System.Text.Json" Version="8.0.5" />
 
 		<PackageReference Update="SkiaSharp.Views" Version="$(SkiaSharpVersion)" />
 		<PackageReference Update="SkiaSharp.Views.Uno" Version="$(SkiaSharpVersion)" />
@@ -115,6 +121,9 @@
 		<PackageReference Update="harfbuzzsharp.nativeassets.ios" Version="7.3.0.1" />
 		<PackageReference Update="SkiaSharp.HarfBuzz" Version="$(SkiaSharpVersion)" />
 
+		<PackageReference Condition=" '$(TargetFramework)' == '$(NetPrevious)' " Update="Microsoft.Win32.SystemEvents" Version="8.0.0" />
+		<PackageReference Condition=" '$(TargetFramework)' == '$(NetCurrent)' " Update="Microsoft.Win32.SystemEvents" Version="9.0.0" />
+
 		<PackageReference Update="Svg.Skia" Version="1.0.0.1" />
 		<PackageReference Update="GtkSharp" Version="3.24.24.38" />
 		<PackageReference Update="System.Json" Version="4.7.1" />
@@ -130,7 +139,6 @@
 		<PackageReference Update="Newtonsoft.Json" Version="13.0.2" />
 		<PackageReference Update="CommunityToolkit.Mvvm" Version="$(CommunityToolkitMvvmVersion)" />
 		<PackageReference Update="System.CommandLine" Version="2.0.0-beta4.22272.1" />
-		<PackageReference Update="Microsoft.Win32.SystemEvents" Version="8.0.0" />
 		<PackageReference Update="Microsoft.Web.WebView2" Version="1.0.2592.51" />
 	</ItemGroup>
 

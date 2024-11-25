@@ -3,7 +3,7 @@ uid: Uno.Controls.GLCanvasElement
 ---
 
 > [!IMPORTANT]
-> This functionality is only available on WinAppSDK and Skia Desktop (`netX.0-desktop`) targets that are running on platforms with support for hardware acceleration. On Windows and Linux, OpenGL is used directly and on macOS, Metal is used through the [ANGLE](https://en.wikipedia.org/wiki/ANGLE_(software)) library.
+> This functionality is only available on WinAppSDK and Skia Desktop (`netX.0-desktop`) targets that are running on platforms with support for hardware acceleration. On Windows and Linux, OpenGL 3.0+ is used directly and on macOS, Metal is used through the [ANGLE](https://en.wikipedia.org/wiki/ANGLE_(software)) library.
 
 `GLCanvasElement` is a control for drawing 3D graphics with OpenGL. It can be enabled by adding the [`GLCanvas` UnoFeature](xref:Uno.Features.Uno.Sdk). The OpenGL APIs provided are provided by [Silk.NET](https://dotnet.github.io/Silk.NET/).
 
@@ -23,7 +23,7 @@ These three abstract methods take a `Silk.NET.OpenGL.GL` parameter that can be u
 
 ### The GLCanvasElement constructor
 
-The protected constructor requires a `Func<Window>` argument that fetches the `Microsoft.UI.Xaml.Window` object that the `GLCanvasElement` belongs to. This function is required because WinUI doesn't yet provide a way to get the `Window` of a `FrameworkElement`. This paramater is ignored on Uno Platform and must be set to null. This function is only called while the `GLCanvasElement` is still in the visual tree.
+The protected constructor requires a `Func<Window>` argument that fetches the `Microsoft.UI.Xaml.Window` object that the `GLCanvasElement` belongs to. This function is required because WinUI doesn't yet provide a way to get the `Window` of a `FrameworkElement`. This parameter is ignored on Uno Platform and can be set to null. This function is only called while the `GLCanvasElement` is still in the visual tree.
 
 ### The `Init` method
 
@@ -41,13 +41,17 @@ On MacOS, since OpenGL support is not natively present, we use [ANGLE](https://e
 
 Additionally, `GLCanvasElement` has an `Invalidate` method that requests a redrawing of the `GLCanvasElement`, calling `RenderOverride` in the process. Note that `RenderOverride` will only be called once per `Invalidate` call and the output will be saved to be used in future frames. To update the output, you must call `Invalidate`. If you need to continuously update the output (e.g. in an animation), you can add an `Invalidate` call inside `RenderOverride`.
 
+## Detecting errors
+
+To detect errors in initializing the OpenGL environment, `GLCanvasElement` exposes an `IsGLInitializedProperty` dependency property that shows whether or nor the loading of the element and its OpenGL setup were successful. This property is only valid when the element is loaded, i.e. its `IsLoaded` property is true. When the element is not loaded, the value of `IsGLInitialized` will be null. `GLCanvasElement` implements `INotifyPropertyChanged`, so you can use this property in a data bindings, for example to set the visibility of a control as a fallback. Attempting to change this property is illegal.
+
 ## How to use Silk.NET
 
 To learn more about using [Silk.NET](https://www.nuget.org/packages/Silk.NET.OpenGL/) as a C# binding for OpenGL, see the examples in the Silk.NET repository [here](https://github.com/dotnet/Silk.NET/tree/main/examples/CSharp). Note that the windowing and inputs APIs in Silk.NET are not relevant to `GLCanvasElement`, since we only use Silk.NET as an OpenGL binding library, not a windowing library.
 
 ## Full example
 
-To see this in action, here's a complete sample that uses `GLCanvasElement` to draw a triangle. Note how you have to be careful with surrounding all the OpenGL-related logic in platform-specific guards. This is the case for both the [XAML](platform-specific-xaml) and the [code-behind](platform-specific-csharp).
+To see this in action, here's a complete sample that uses `GLCanvasElement` to draw a triangle. Note how you have to be careful with surrounding all the OpenGL-related logic in platform-specific guards. This is the case for both the [XAML](platform-specific-xaml) and the [code-behind](platform-specific-csharp). For complete C# projects, visit our [GLCanvasElement Samples in the Uno.Samples repository](https://aka.platform.uno/glcanvaselement-sample).
 
 XAML:
 

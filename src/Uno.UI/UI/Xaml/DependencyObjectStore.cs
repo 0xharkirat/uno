@@ -18,6 +18,8 @@ using System.Collections;
 using System.Globalization;
 using Windows.ApplicationModel.Calls;
 using Microsoft.UI.Xaml.Controls;
+using System.Diagnostics.CodeAnalysis;
+
 
 
 #if __ANDROID__
@@ -83,7 +85,7 @@ namespace Microsoft.UI.Xaml
 		private ManagedWeakReference? _thisWeakRef;
 
 		private readonly Type _originalObjectType;
-		private readonly SerialDisposable _inheritedProperties = new SerialDisposable();
+		private InheritedPropertiesDisposable? _inheritedProperties;
 		private ManagedWeakReference? _parentRef;
 		private object? _hardParentRef;
 		private readonly Dictionary<DependencyProperty, ManagedWeakReference> _inheritedForwardedProperties = new Dictionary<DependencyProperty, ManagedWeakReference>(DependencyPropertyComparer.Default);
@@ -112,6 +114,16 @@ namespace Microsoft.UI.Xaml
 #if UNO_HAS_ENHANCED_LIFECYCLE
 		internal bool IsDisposed => _isDisposed;
 #endif
+
+		private InheritedPropertiesDisposable? InheritedProperties
+		{
+			get => _inheritedProperties;
+			set
+			{
+				_inheritedProperties?.Dispose();
+				_inheritedProperties = value;
+			}
+		}
 
 		/// <summary>
 		/// Provides the parent Dependency Object of this dependency object
@@ -146,7 +158,7 @@ namespace Microsoft.UI.Xaml
 						_parentRef = WeakReferencePool.RentWeakReference(this, value);
 					}
 
-					_inheritedProperties.Disposable = null;
+					InheritedProperties = null;
 
 					if (value is IDependencyObjectStoreProvider parentProvider)
 					{
@@ -175,6 +187,7 @@ namespace Microsoft.UI.Xaml
 		/// Creates a delegated dependency object instance for the specified <paramref name="originalObject"/>
 		/// </summary>
 		/// <param name="originalObject"></param>
+		[UnconditionalSuppressMessage("Trimming", "IL2067", Justification = "normal flow of operation")]
 		public DependencyObjectStore(object originalObject, DependencyProperty dataContextProperty)
 		{
 			_originalObjectRef = WeakReferencePool.RentWeakReference(this, originalObject);
@@ -1224,7 +1237,7 @@ namespace Microsoft.UI.Xaml
 			if (
 				!_registeringInheritedProperties
 				&& !_unregisteringInheritedProperties
-				&& _inheritedProperties.Disposable == null
+				&& InheritedProperties == null
 				&& (
 					IsAutoPropertyInheritanceEnabled
 					|| force
@@ -1248,7 +1261,7 @@ namespace Microsoft.UI.Xaml
 					{
 						_registeringInheritedProperties = true;
 
-						_inheritedProperties.Disposable = RegisterInheritedProperties(parentProvider);
+						InheritedProperties = RegisterInheritedProperties(parentProvider);
 					}
 					finally
 					{
@@ -1488,6 +1501,8 @@ namespace Microsoft.UI.Xaml
 			}
 		}
 
+		[UnconditionalSuppressMessage("Trimming", "IL2067", Justification = "normal flow of operation")]
+		[UnconditionalSuppressMessage("Trimming", "IL2072", Justification = "normal flow of operation")]
 		private void SetResourceBindingValue(DependencyProperty property, ResourceBinding binding, object? value)
 		{
 			var convertedValue = BindingPropertyHelper.Convert(property.Type, value);
